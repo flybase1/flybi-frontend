@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
-  deleteChartUsingPOST,
+  deleteChartUsingPOST, genChartAiAsyncRetryUsingPOST,
   listMyChartByPageUsingPOST,
 } from '@/services/flybi/chartController';
 import { Avatar, Button, Card, List, message, Modal, Result } from 'antd';
@@ -33,7 +33,7 @@ const MyChartPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [dLoading, setDLoading] = useState<boolean>(false);
   const [fLoading, setFLoading] = useState<boolean>(false);
-
+  const [isButtonDisabled, setIsButtonDisabled] = useState(false);
   const [showCard, setShowCard] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState(null);
   const [status, setStatus] = useState<string>();
@@ -133,6 +133,22 @@ const MyChartPage: React.FC = () => {
     flushList();
   }, []);
 
+  async function retryAI(id: any) {
+    try {
+      setIsButtonDisabled(true);
+      const retryChart = await genChartAiAsyncRetryUsingPOST({
+        id: id,
+      });
+      if (retryChart.code != 0) {
+        message.error('重试失败 ' + retryChart.message);
+      }
+      setIsButtonDisabled(false); // 恢复按钮
+    } catch (e: any) {
+      setIsButtonDisabled(false); // 恢复按钮
+      message.error('重试失败' + e.message);
+    }
+  }
+
   return (
     <div className={'my-chart-page'}>
       <div>
@@ -201,7 +217,7 @@ const MyChartPage: React.FC = () => {
                       title={'图表生成失败'}
                       subTitle={item.execMessage}>
                     </Result>
-                    <Button>
+                    <Button onClick={() => retryAI(item.id)} disabled={isButtonDisabled}>
                       重试
                     </Button>
                   </>
@@ -222,7 +238,6 @@ const MyChartPage: React.FC = () => {
                       subTitle={item.execMessage ?? '当前图表生成队列繁忙，请耐心等待'} />
                   </>
                 }
-
               </>
             </Card>
 
@@ -230,12 +245,11 @@ const MyChartPage: React.FC = () => {
               <Button onClick={() => deleteByChartId(item.id)} loading={dLoading}>
                 删除图表
               </Button>
-              <Button onClick={() => updateById(item.id)}>
+              <Button onClick={() => updateById(item.id)} disabled={item.status === 'failed' || item.status === 'wait'}>
                 <Link to={`/update_chart/${item.id}`}>
                   修改图表
                 </Link>
               </Button>
-
             </Card>
           </List.Item>
         )}

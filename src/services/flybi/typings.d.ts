@@ -4,6 +4,54 @@ declare namespace API {
     name?: string;
   };
 
+  type Aimodel = {
+    aiavatar?: string;
+    aidescription?: string;
+    ainame?: string;
+    airoute?: string;
+    createTime?: string;
+    id?: number;
+    isDelete?: number;
+    isOnline?: string;
+    updateTime?: string;
+  };
+
+  type AiModelAddRequest = {
+    aiavatar?: string;
+    aidescription?: string;
+    ainame?: string;
+    airoute?: string;
+    isOnline?: string;
+  };
+
+  type AiModelQueryRequest = {
+    aiavatar?: string;
+    aidescription?: string;
+    ainame?: string;
+    airoute?: string;
+    current?: number;
+    id?: number;
+    isOnline?: string;
+    pageSize?: number;
+    sortField?: string;
+    sortOrder?: string;
+  };
+
+  type AiModelUpdateRequest = {
+    aiavatar?: string;
+    aidescription?: string;
+    ainame?: string;
+    airoute?: string;
+    id?: number;
+    isOnline?: string;
+  };
+
+  type BaseResponseAimodel_ = {
+    code?: number;
+    data?: Aimodel;
+    message?: string;
+  };
+
   type BaseResponseBIResponse_ = {
     code?: number;
     data?: BIResponse;
@@ -22,9 +70,15 @@ declare namespace API {
     message?: string;
   };
 
-  type BaseResponseInt_ = {
+  type BaseResponseChatMessage_ = {
     code?: number;
-    data?: number;
+    data?: ChatMessage;
+    message?: string;
+  };
+
+  type BaseResponseListAimodel_ = {
+    code?: number;
+    data?: Aimodel[];
     message?: string;
   };
 
@@ -46,15 +100,21 @@ declare namespace API {
     message?: string;
   };
 
-  type BaseResponsePageChart_ = {
+  type BaseResponseMapStringObject_ = {
     code?: number;
-    data?: PageChart_;
+    data?: Record<string, any>;
     message?: string;
   };
 
-  type BaseResponsePagePostVO_ = {
+  type BaseResponsePageAimodel_ = {
     code?: number;
-    data?: PagePostVO_;
+    data?: PageAimodel_;
+    message?: string;
+  };
+
+  type BaseResponsePageChart_ = {
+    code?: number;
+    data?: PageChart_;
     message?: string;
   };
 
@@ -67,12 +127,6 @@ declare namespace API {
   type BaseResponsePageUserVO_ = {
     code?: number;
     data?: PageUserVO_;
-    message?: string;
-  };
-
-  type BaseResponsePostVO_ = {
-    code?: number;
-    data?: PostVO;
     message?: string;
   };
 
@@ -102,9 +156,11 @@ declare namespace API {
 
   type Chart = {
     chartData?: string;
+    chartDetailTableName?: string;
     chartType?: string;
     createTime?: string;
     execMessage?: string;
+    failedCount?: number;
     genChart?: string;
     genResult?: string;
     goal?: string;
@@ -119,6 +175,14 @@ declare namespace API {
   type ChartAddRequest = {
     chartData?: string;
     chartType?: string;
+    goal?: string;
+    name?: string;
+  };
+
+  type ChartDetailUploadRequest = {
+    chartDetailName?: string;
+    chartType?: string;
+    csvData?: string;
     goal?: string;
     name?: string;
   };
@@ -146,24 +210,27 @@ declare namespace API {
     chartData?: string;
     chartType?: string;
     createTime?: string;
+    failedCount?: number;
     genChart?: string;
     genResult?: string;
     goal?: string;
     id?: number;
     isDelete?: number;
+    status?: string;
     updateTime?: string;
     userId?: number;
   };
 
-  type checkUsingGETParams = {
-    /** echostr */
-    echostr?: string;
-    /** nonce */
-    nonce?: string;
-    /** signature */
-    signature?: string;
-    /** timestamp */
-    timestamp?: string;
+  type ChatMessage = {
+    aiavatar?: string;
+    aimessage?: string;
+    updateTime?: string;
+    userAvatar?: string;
+    userMessage?: string;
+  };
+
+  type DeleteAiModelRequest = {
+    id?: number;
   };
 
   type DeleteRequest = {
@@ -174,6 +241,10 @@ declare namespace API {
     chartType?: string;
     goal?: string;
     name?: string;
+  };
+
+  type genChartAiAsyncRetryUsingPOSTParams = {
+    id?: number;
   };
 
   type genChartAiAsyncUsingPOSTParams = {
@@ -188,17 +259,17 @@ declare namespace API {
     name?: string;
   };
 
+  type getAiModelByIdUsingGETParams = {
+    /** AIId */
+    AIId?: number;
+  };
+
   type getChartByIdUsingGETParams = {
     /** id */
     id?: number;
   };
 
   type getChartDetailByIdUsingGETParams = {
-    /** id */
-    id?: number;
-  };
-
-  type getPostVOByIdUsingGETParams = {
     /** id */
     id?: number;
   };
@@ -211,6 +282,11 @@ declare namespace API {
   type getUserVOByIdUsingGETParams = {
     /** id */
     id?: number;
+  };
+
+  type listAiModelUsingGETParams = {
+    /** aName */
+    aName?: string;
   };
 
   type LoginUserVO = {
@@ -232,6 +308,19 @@ declare namespace API {
     column?: string;
   };
 
+  type PageAimodel_ = {
+    countId?: string;
+    current?: number;
+    maxLimit?: number;
+    optimizeCountSql?: boolean;
+    orders?: OrderItem[];
+    pages?: number;
+    records?: Aimodel[];
+    searchCount?: boolean;
+    size?: number;
+    total?: number;
+  };
+
   type PageChart_ = {
     countId?: string;
     current?: number;
@@ -240,19 +329,6 @@ declare namespace API {
     orders?: OrderItem[];
     pages?: number;
     records?: Chart[];
-    searchCount?: boolean;
-    size?: number;
-    total?: number;
-  };
-
-  type PagePostVO_ = {
-    countId?: string;
-    current?: number;
-    maxLimit?: number;
-    optimizeCountSql?: boolean;
-    orders?: OrderItem[];
-    pages?: number;
-    records?: PostVO[];
     searchCount?: boolean;
     size?: number;
     total?: number;
@@ -282,74 +358,6 @@ declare namespace API {
     searchCount?: boolean;
     size?: number;
     total?: number;
-  };
-
-  type PostAddRequest = {
-    content?: string;
-    tags?: string[];
-    title?: string;
-  };
-
-  type PostEditRequest = {
-    content?: string;
-    id?: number;
-    tags?: string[];
-    title?: string;
-  };
-
-  type PostFavourAddRequest = {
-    postId?: number;
-  };
-
-  type PostFavourQueryRequest = {
-    current?: number;
-    pageSize?: number;
-    postQueryRequest?: PostQueryRequest;
-    sortField?: string;
-    sortOrder?: string;
-    userId?: number;
-  };
-
-  type PostQueryRequest = {
-    content?: string;
-    current?: number;
-    favourUserId?: number;
-    id?: number;
-    notId?: number;
-    orTags?: string[];
-    pageSize?: number;
-    searchText?: string;
-    sortField?: string;
-    sortOrder?: string;
-    tags?: string[];
-    title?: string;
-    userId?: number;
-  };
-
-  type PostThumbAddRequest = {
-    postId?: number;
-  };
-
-  type PostUpdateRequest = {
-    content?: string;
-    id?: number;
-    tags?: string[];
-    title?: string;
-  };
-
-  type PostVO = {
-    content?: string;
-    createTime?: string;
-    favourNum?: number;
-    hasFavour?: boolean;
-    hasThumb?: boolean;
-    id?: number;
-    tagList?: string[];
-    thumbNum?: number;
-    title?: string;
-    updateTime?: string;
-    user?: UserVO;
-    userId?: number;
   };
 
   type uploadFileUsingPOSTParams = {

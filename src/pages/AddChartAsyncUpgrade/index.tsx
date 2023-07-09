@@ -1,10 +1,7 @@
-import {
-  CaretLeftOutlined, CaretRightOutlined,
-  UploadOutlined,
-} from '@ant-design/icons';
+import { CaretLeftOutlined, CaretRightOutlined, UploadOutlined } from '@ant-design/icons';
 
 import {
-  Alert, Avatar,
+  Avatar,
   Button,
   Card,
   Checkbox,
@@ -13,38 +10,41 @@ import {
   Descriptions,
   Divider,
   Form,
-  Input,
   message,
-  Rate,
   Row,
-  Select,
-  Slider,
   Space,
-  Spin,
-  Switch,
-  Tabs,
+  Table,
   Upload,
 } from 'antd';
 import React, { useEffect, useState } from 'react';
-
-
-import { genChartAiAsyncMQUsingPOST } from '@/services/flybi/chartController';
 import { useForm } from 'antd/es/form/Form';
-import { getAiModelByIdUsingGET } from '@/services/flybi/aiModelController';
+import {
+  chooseUploadExcelStatsUsingPOST,
+  uploadExcelAndCreateTableUsingPOST,
+} from '@/services/flybi/chartDetailController';
+import { DataType } from 'csstype';
 
+import { Helmet, history, useModel } from '@umijs/max';
+import { getAiModelByIdUsingGET } from '@/services/flybi/aiModelController';
 
 /**
  * 添加图表
  * @constructor
  */
-const AddChartAsync: React.FC = () => {
-  const [chart, setChart] = useState<API.BIResponse>();
+const AddChartAsyncUpgrade: React.FC = () => {
   const [form] = useForm();
   const [submitting, setSubmitting] = useState<boolean>(false);
-  const [option, setOption] = useState<any>(null);
+  const [headers, setHeaders] = useState<string>();
+  const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
+  const [fileData, setFileData] = useState<any[]>([]);
+  const [columns, setColumns] = useState<any[]>([]);
+  const [tableData, setTableData] = useState<DataType[] | undefined>(undefined);
+  const [tableName, setTableName] = useState<string>('');
   const [showInfoPanel, setShowInfoPanel] = useState<boolean>(false);
   const [aIInfo, setAiInfo] = useState<API.Aimodel>();
   const AIId = localStorage.getItem('AIId');
+
+
 
   const onFinish = async (values: any) => {
     const params = {
@@ -56,27 +56,58 @@ const AddChartAsync: React.FC = () => {
       return;
     }
     setSubmitting(true);
-    setOption(undefined);
-    setChart(undefined);
     try {
       // 线程池genChartAiAsyncUsingPOST
-      const res = await genChartAiAsyncMQUsingPOST(params, {}, values.file.file.originFileObj);
+      const res = await uploadExcelAndCreateTableUsingPOST(params, values.file.file.originFileObj);
       if (!res.data) {
-        message.error('分析失败');
-      }
-      localStorage.setItem('chartId', res?.data?.chartId + '');
-      message.success('上传成功');
-      form.resetFields();
+        message.error('');
+      } else {
+        const chartDetailTable = res.data.tableName;
+        const allData = res.data.data;
+        // 设置表名
+        setTableName(chartDetailTable);
+        const dynamicColumns = Object.keys(allData[0]).map((key) => ({
+          title: key,
+          dataIndex: key,
+        }));
+        setColumns(dynamicColumns);
+        setTableData(allData);
+        setSelectedColumns(Object.keys(allData[0]));
 
+        message.success('提交成功，请继续下一步操作');
+        form.resetFields();
+
+      }
     } catch (e: any) {
-      message.error('分析失败,' + e.message);
+      message.error('提交失败,' + e.message);
     }
     setSubmitting(false);
+  };
+
+  const handleColumnChange = (checkedValues: any) => {
+    setSelectedColumns(checkedValues);
   };
 
   function returnToHome() {
     history.back();
   }
+
+  const handleNextStep = async () => {
+    try {
+      // 获取已选择的属性
+      const csvData = await chooseUploadExcelStatsUsingPOST({
+        columnNames: selectedColumns,
+        tableName: tableName,
+      });
+      //console.log(tableName);
+      history.push('/add_chart_async_upgrade/add', { state: { csvData } });
+      localStorage.setItem('csvData', JSON.stringify(csvData));
+      localStorage.setItem('tableName', JSON.stringify(tableName));
+    } catch (e: any) {
+      message.error('数据错误');
+    }
+
+  };
 
 
   /**
@@ -95,8 +126,6 @@ const AddChartAsync: React.FC = () => {
     const fetchData = async () => {
       try {
         const res = await getAiModelByIdUsingGET({ AIId: AIId });
-        console.log(typeof (AIId));
-        console.log(AIId);
         setAiInfo(res.data);
       } catch (error) {
         console.error(error);
@@ -105,49 +134,25 @@ const AddChartAsync: React.FC = () => {
     fetchData();
   }, [AIId]);
 
+
   return (
-    <div className={'add-chart-async'}>
+    <div className={'add-chart-async-upgrade'}>
       <Button onClick={() => returnToHome()}>
         返回
       </Button>
       <Divider />
+
       <Row>
         <Col span={showInfoPanel ? 18 : 24}>
-          <Card title={'智能分析'}>
+          <Card title={'智能分析plus'}>
             <Form
               form={form}
-              name="add_chart"
+              name="add_chart_plus"
               onFinish={onFinish}
               initialValues={{}}
-              labelCol={{ span: 4 }}
+              labelCol={{ span: 2 }}
               labelAlign={'left'}
             >
-
-              <Form.Item name={'goal'} label={'分析目标'} rules={[{ required: true, message: '请输入你的图表类型' }]}>
-                <Input placeholder={'请输入你的分析需求, 比如分析人数增长情况'} />
-              </Form.Item>
-
-              <Form.Item name={'name'} label={'图表名称'} rules={[{ required: true, message: '请输入你的图表类型' }]}>
-                <Input placeholder={'请输入图表名称'} />
-              </Form.Item>
-
-              <Form.Item
-                name="chartType"
-                label="图表类型"
-                hasFeedback
-                rules={[{ required: true, message: '请输入你的图表类型' }]}
-              >
-                <Select options={[
-                  { value: '折线图', label: '折线图' },
-                  { value: '柱状图', label: '柱状图' },
-                  { value: '堆叠图', label: '堆叠图' },
-                  { value: '饼图', label: '饼图' },
-                  { value: '雷达图', label: '雷达图' },
-                  { value: '仪表图', label: '仪表图' },
-                ]}>
-                </Select>
-              </Form.Item>
-
               <Form.Item
                 name="file"
                 label="原始数据"
@@ -157,22 +162,45 @@ const AddChartAsync: React.FC = () => {
                 </Upload>
               </Form.Item>
 
-              <Form.Item wrapperCol={{ span: 12, offset: 6 }}>
+              <Form.Item wrapperCol={{ span: 12, offset: 2 }}>
                 <Space>
                   <Button type="primary" htmlType="submit" loading={submitting} disabled={submitting}>
-                    智能分析
+                    提交
                   </Button>
-                  <span style={{ fontSize: '12px', marginLeft: '8px' }}>消耗一次积分</span>
                   <Button htmlType="reset">重置</Button>
+                </Space>
+              </Form.Item>
+
+              <Form.Item label={'选择属性'}>
+                <Checkbox.Group options={columns.map(col => col.title)} value={selectedColumns}
+                                onChange={handleColumnChange} />
+              </Form.Item>
+
+              <Form.Item
+                label={'数据预览'}
+              >
+                <Table
+                  columns={columns.filter(col => selectedColumns.includes(col.title))}
+                  dataSource={tableData}
+                  scroll={{ y: 240, x: 200 }}
+                />
+              </Form.Item>
+
+              <Form.Item wrapperCol={{ span: 12, offset: 8 }}>
+                <Space>
+                  <Button type="primary" onClick={handleNextStep}
+                          disabled={!selectedColumns || selectedColumns.length === 0}>
+                    下一步操作
+                  </Button>
                 </Space>
               </Form.Item>
             </Form>
           </Card>
+
         </Col>
         <Col span={showInfoPanel ? 6 : 0}>
           <Collapse activeKey={showInfoPanel ? 'infoPanel' : undefined}>
             <Collapse.Panel key="infoPanel" header="相关信息">
-              {/* 相关信息内容 */}
               <Descriptions title={'AI介绍'} column={1}>
                 <Descriptions.Item label={'头像 '}>{<Avatar src={aIInfo?.aiavatar} />}</Descriptions.Item>
                 <Descriptions.Item label={'模型ID'}>{aIInfo?.id}</Descriptions.Item>
@@ -180,6 +208,7 @@ const AddChartAsync: React.FC = () => {
                 <Descriptions.Item label={'AI描述'}>{aIInfo?.aidescription}</Descriptions.Item>
                 <Descriptions.Item label={'创建时间'}>{formatDate(aIInfo?.createTime)}</Descriptions.Item>
               </Descriptions>
+              {/* 相关信息内容 */}
             </Collapse.Panel>
           </Collapse>
           <div style={{ height: '200px' }} />
@@ -197,4 +226,4 @@ const AddChartAsync: React.FC = () => {
     </div>
   );
 };
-export default AddChartAsync;
+export default AddChartAsyncUpgrade;

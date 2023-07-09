@@ -134,6 +134,21 @@ export async function genChartAiAsyncUsingPOST(
   });
 }
 
+/** genChartAiAsyncRetry POST /api/chart/gen/async/asyn/retry */
+export async function genChartAiAsyncRetryUsingPOST(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.genChartAiAsyncRetryUsingPOSTParams,
+  options?: { [key: string]: any },
+) {
+  return request<API.BaseResponseBIResponse_>('/api/chart/gen/async/asyn/retry', {
+    method: 'POST',
+    params: {
+      ...params,
+    },
+    ...(options || {}),
+  });
+}
+
 /** genChartAiAsyncMQ POST /api/chart/gen/async/mq */
 export async function genChartAiAsyncMQUsingPOST(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)

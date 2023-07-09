@@ -10,20 +10,19 @@ import {
 } from 'antd';
 import React, { useEffect, useState } from 'react';
 
+import { Helmet, history, useModel } from '@umijs/max';
 
 import {
   deleteChartUsingPOST,
-  genChartAiAsyncUsingPOST, genChartByAiUsingPOST,
+  genChartByAiUsingPOST,
   getChartByIdUsingGET,
   getChartDetailByIdUsingGET,
-  updateChartUsingPOST,
+
 } from '@/services/flybi/chartController';
 import { useForm } from 'antd/es/form/Form';
 import { Link, useParams } from '@@/exports';
-import { string } from 'prop-types';
-import { request } from '@/app';
 import ReactECharts from 'echarts-for-react';
-import echarts from 'echarts';
+import * as echarts from 'echarts';
 
 
 /**
@@ -37,7 +36,7 @@ const UpdateChartAsync: React.FC = () => {
     const [form] = useForm();
     const [submitting, setSubmitting] = useState<boolean>(false);
     const [option, setOption] = useState<any>(null);
-    const [dataId, setDataId] = useState<any>();
+    const [dataId, setDataId] = useState<API.getChartByIdUsingGETParams>();
 
     const onFinish = async (values: any) => {
       console.log(values);
@@ -59,6 +58,16 @@ const UpdateChartAsync: React.FC = () => {
         }
         message.success('分析任务提交成功，稍后在我的图表里面查看信息');
         form.resetFields();
+        try {
+          const deleteRes = await deleteChartUsingPOST({
+            id: id,
+          });
+          if (deleteRes) {
+            history.push('my_chart');
+          }
+        } catch (e: any) {
+
+        }
 
       } catch (e: any) {
         message.error('分析失败,' + e.message);
@@ -67,6 +76,7 @@ const UpdateChartAsync: React.FC = () => {
     };
 
     const { id } = useParams();
+
 
     async function fetchData() {
       try {

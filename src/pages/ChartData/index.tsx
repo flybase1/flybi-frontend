@@ -20,7 +20,6 @@ const ChartData: React.FC = () => {
     getChartDetailByIdUsingGET({ id: dataId })
       .then(res => {
         console.log(res); // 实际的响应数据
-
         // 更新表格列
         const dynamicColumns = Object.keys(res.data[0]).map((key) => ({
           title: key,

@@ -1,21 +1,22 @@
-import CreateModal from '@/pages/admin/UserInfo/components/CreateModal';
-
-import ProDescriptions, { ProDescriptionsItemProps } from '@ant-design/pro-descriptions';
 import { FooterToolbar, PageContainer } from '@ant-design/pro-layout';
 import { ActionType, ProColumns, ProTable } from '@ant-design/pro-table';
 import { Button, Drawer, Form, Image, InputNumber, message } from 'antd';
 import { SortOrder } from 'antd/es/table/interface';
-import React, { useRef, useState } from 'react';
+import React, { ReactNode, useEffect, useRef, useState } from 'react';
 import { FormattedMessage } from 'react-intl';
-import {
-  addUserUsingPOST,
-  deleteUserUsingPOST,
-  listUserByPageUsingPOST,
-  updateUserUsingPOST,
-} from '@/services/flybi/userController';
-import UpdateModal from '@/pages/admin/UserInfo/components/UpdateModal';
 
-const UserInfo: React.FC = () => {
+import UpdateModal from '@/pages/admin/AiModel/components/UpdateModal';
+import CreateModal from '@/pages/admin/AiModel/components/CreateModal';
+import {
+  addAiModelUsingPOST,
+  deleteAiModelUsingPOST,
+  listAiModelUsingPOST,
+  updateAiModelUsingPOST,
+} from '@/services/flybi/aiModelController';
+import { PlusOutlined } from '@ant-design/icons';
+import ProDescriptions, { ProDescriptionsItemProps } from '@ant-design/pro-descriptions';
+
+const AiModel: React.FC = () => {
   /**
    * @en-US Pop-up window of new window
    * @zh-CN 新建窗口的弹窗
@@ -30,23 +31,33 @@ const UserInfo: React.FC = () => {
   const [showDetail, setShowDetail] = useState<boolean>(false);
 
   const actionRef = useRef<ActionType>();
-  const [currentRow, setCurrentRow] = useState<API.UserVO>();
-  const [selectedRowsState, setSelectedRows] = useState<API.UserVO[]>([]);
-  const [currentId, setCurrentId] = useState<number>();
-  const [data, setData] = useState<API.UserVO[]>([]); // 初始化一个空数组作为初始值
+  const [currentRow, setCurrentRow] = useState<API.Aimodel>();
+  const [selectedRowsState, setSelectedRows] = useState<API.Aimodel[]>([]);
+  const [data, setData] = useState<API.Aimodel[]>([]); // 初始化一个空数组作为初始值
+
+  const [reloadData, setReloadData] = useState(false);
+
+  useEffect(() => {
+    if (reloadData) {
+      actionRef.current?.reload();
+      setReloadData(false);
+    }
+  }, [reloadData]);
+
 
   /**
    * @en-US Add node
    * @zh-CN 添加节点
    * @param fields
    */
-  const handleAdd = async (fields: API.UserVO) => {
+  const handleAdd = async (fields: API.AiModelAddRequest) => {
     const hide = message.loading('正在添加');
     try {
-      await addUserUsingPOST({ ...fields });
+      await addAiModelUsingPOST({ ...fields });
       hide();
       message.success('创建成功');
       handleModalOpen(false);
+      setReloadData(true);
       return true;
     } catch (error: any) {
       hide();
@@ -61,19 +72,20 @@ const UserInfo: React.FC = () => {
    *
    * @param fields
    */
-  const handleUpdate = async (fields: API.UserVO) => {
+  const handleUpdate = async (fields: API.AiModelUpdateRequest) => {
     if (!currentRow) {
       return;
     }
     const hide = message.loading('修改中');
     try {
-      await updateUserUsingPOST({
+      await updateAiModelUsingPOST({
         id: currentRow.id,
         ...fields,
       });
       hide();
 
       message.success('操作成功');
+      setReloadData(true);
       return true;
     } catch (error: any) {
       hide();
@@ -88,11 +100,11 @@ const UserInfo: React.FC = () => {
    *
    * @param record
    */
-  const handleRemove = async (record: API.UserVO) => {
+  const handleRemove = async (record: API.Aimodel) => {
     const hide = message.loading('正在删除');
     if (!record) return true;
     try {
-      await deleteUserUsingPOST({
+      await deleteAiModelUsingPOST({
         id: record.id,
       });
       hide();
@@ -112,7 +124,7 @@ const UserInfo: React.FC = () => {
    * */
     //  const intl = useIntl();
 
-  const columns: ProColumns<API.UserVO>[] = [
+  const columns: ProColumns<API.Aimodel>[] = [
       {
         title: 'ID',
         dataIndex: 'id',
@@ -120,83 +132,55 @@ const UserInfo: React.FC = () => {
         ellipsis: true,
       },
       {
-        title: '用户名',
-        dataIndex: 'userName',
+        title: 'AI名',
+        dataIndex: 'ainame',
         valueType: 'text',
-        hideInForm: true,
       },
       {
-        title: '用户账号',
-        dataIndex: 'userAccount',
-        valueType: 'text',
-        hideInForm: true,
+        title: 'AI描述',
+        dataIndex: 'aidescription',
+        valueType: 'textArea',
+        ender: (dom: ReactNode) => {
+          if (typeof dom === 'string') {
+            const text = dom;
+            if (text.length > 20) {
+              return text.substring(0, 20) + '...';
+            }
+            return text;
+          }
+          return dom;
+        },
       },
       {
-        title: '用户头像',
-        dataIndex: 'userAvatar',
-        hideInForm: true,
+        title: 'AI头像',
+        dataIndex: 'aiavatar',
         render: (_: any, record: { userAvatar: string | undefined; }) => (
           <div>
             <Image src={record.userAvatar} width={50} height={50} />
           </div>
         ),
       },
-      /*    {
-            title: '性别',
-            dataIndex: 'gender',
-            hideInForm: true,
-            valueEnum: {
-              0: {
-                text: '男',
-              },
-              1: {
-                text: '女',
-              },
-            },
-          },*/
       {
-        title: '用户角色',
-        dataIndex: 'userRole',
+        title: '是否上线',
+        dataIndex: 'isOnline',
         valueType: 'text',
         valueEnum: {
-          admin: {
-            text: '管理员',
+          OnLine: {
+            text: '上线',
             status: 'Processing',
           },
-          user: {
-            text: '用户',
-            status: 'success',
-          },
-          ban: {
-            text: '违规用户',
+          offLine: {
+            text: '下线',
             status: 'error',
           },
         },
       },
       {
-        title: '剩余次数',
-        dataIndex: 'leftCount',
-        valueType: 'digit',
-        render: (_: any, record: { leftCount: any; id: number | undefined; }) => (
-          <InputNumber
-            min={0}
-            max={100}
-            value={record.leftCount}
-            onChange={(value) => {
-              const newData = data.map((item) => {
-                if (item.id === record.id) {
-                  return {
-                    ...item,
-                    leftCount: value,
-                  };
-                }
-                return item;
-              });
-              setData(newData);
-            }}
-          />
-        ),
+        title: 'AI路由',
+        dataIndex: 'airoute',
+        valueType: 'text',
       },
+
       {
         title: '创建时间',
         dataIndex: 'createTime',
@@ -209,26 +193,12 @@ const UserInfo: React.FC = () => {
         valueType: 'dateTime',
         hideInForm: true,
       },
-      /*   {
-                           title: '是否删除',
-                           dataIndex: 'isDeleted',
-                           hideInForm: true,
-                           valueEnum: {
-                             0: {
-                               text: '删除',
-                               status: 'Danger',
-                             },
-                             1: {
-                               text: '不删除',
-                               status: 'Default',
-                             },
-                           },
-                         },*/
+
       {
         title: '操作',
         dataIndex: 'option',
         valueType: 'option',
-        render: (_: any, record: React.SetStateAction<API.UserVO | undefined>) => [
+        render: (_: any, record: React.SetStateAction<API.Aimodel | undefined>) => [
           <a
             key="config"
             onClick={() => {
@@ -254,30 +224,30 @@ const UserInfo: React.FC = () => {
   return (
     <PageContainer>
       <ProTable
-        headerTitle="用户"
+        headerTitle="AI模型"
         actionRef={actionRef}
         rowKey="key"
         search={{
           labelWidth: 120,
         }}
-        /*      toolBarRender={() => [
-                <Button
-                  type="primary"
-                  key="primary"
-                  onClick={() => {
-                    handleModalOpen(true);
-                  }}
-                >
-                  <PlusOutlined />{' '}
-                  <FormattedMessage id="pages.searchTable.new" defaultMessage="新建用户" />
-                </Button>,
-              ]}*/
+
+        toolBarRender={() => [
+          <Button
+            type="primary"
+            key="primary"
+            onClick={() => {
+              handleModalOpen(true);
+            }}
+          >
+            <PlusOutlined />{' 新建'}
+          </Button>,
+        ]}
         request={async (
           params,
           sort: Record<string, SortOrder>,
           filter: Record<string, (string | number)[] | null>,
         ) => {
-          const res: any = await listUserByPageUsingPOST({
+          const res: any = await listAiModelUsingPOST({
             ...params,
           });
 
@@ -371,15 +341,15 @@ const UserInfo: React.FC = () => {
         }}
         closable={false}
       >
-        {currentRow?.userName && (
+        {currentRow?.ainame && (
           <ProDescriptions<API.RuleListItem>
             column={2}
-            title={currentRow?.userName}
+            title={currentRow?.ainame}
             request={async () => ({
               data: currentRow || {},
             })}
             params={{
-              id: currentRow?.userName,
+              id: currentRow?.ainame,
             }}
             columns={columns as ProDescriptionsItemProps<API.RuleListItem>[]}
           />
@@ -395,4 +365,4 @@ const UserInfo: React.FC = () => {
   );
 };
 
-export default UserInfo;
+export default AiModel;

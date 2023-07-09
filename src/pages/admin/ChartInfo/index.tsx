@@ -1,21 +1,19 @@
-import CreateModal from '@/pages/admin/UserInfo/components/CreateModal';
-
 import ProDescriptions, { ProDescriptionsItemProps } from '@ant-design/pro-descriptions';
 import { FooterToolbar, PageContainer } from '@ant-design/pro-layout';
 import { ActionType, ProColumns, ProTable } from '@ant-design/pro-table';
 import { Button, Drawer, Form, Image, InputNumber, message } from 'antd';
 import { SortOrder } from 'antd/es/table/interface';
-import React, { useRef, useState } from 'react';
+import React, { ReactNode, useRef, useState } from 'react';
 import { FormattedMessage } from 'react-intl';
 import {
-  addUserUsingPOST,
-  deleteUserUsingPOST,
   listUserByPageUsingPOST,
-  updateUserUsingPOST,
-} from '@/services/flybi/userController';
-import UpdateModal from '@/pages/admin/UserInfo/components/UpdateModal';
 
-const UserInfo: React.FC = () => {
+} from '@/services/flybi/userController';
+
+import { deleteChartUsingPOST, listChartByPageUsingPOST, updateChartUsingPOST } from '@/services/flybi/chartController';
+import UpdateChartModal from '@/pages/admin/ChartInfo/components/UpdateModal';
+
+const ChartInfo: React.FC = () => {
   /**
    * @en-US Pop-up window of new window
    * @zh-CN 新建窗口的弹窗
@@ -30,30 +28,12 @@ const UserInfo: React.FC = () => {
   const [showDetail, setShowDetail] = useState<boolean>(false);
 
   const actionRef = useRef<ActionType>();
-  const [currentRow, setCurrentRow] = useState<API.UserVO>();
-  const [selectedRowsState, setSelectedRows] = useState<API.UserVO[]>([]);
+  const [currentRow, setCurrentRow] = useState<API.Chart>();
+  const [selectedRowsState, setSelectedRows] = useState<API.Chart[]>([]);
   const [currentId, setCurrentId] = useState<number>();
-  const [data, setData] = useState<API.UserVO[]>([]); // 初始化一个空数组作为初始值
+  const [data, setData] = useState<API.Chart[]>([]); // 初始化一个空数组作为初始值
 
-  /**
-   * @en-US Add node
-   * @zh-CN 添加节点
-   * @param fields
-   */
-  const handleAdd = async (fields: API.UserVO) => {
-    const hide = message.loading('正在添加');
-    try {
-      await addUserUsingPOST({ ...fields });
-      hide();
-      message.success('创建成功');
-      handleModalOpen(false);
-      return true;
-    } catch (error: any) {
-      hide();
-      message.error('创建失败,' + error.message);
-      return false;
-    }
-  };
+
 
   /**
    * @en-US Update node
@@ -61,13 +41,13 @@ const UserInfo: React.FC = () => {
    *
    * @param fields
    */
-  const handleUpdate = async (fields: API.UserVO) => {
+  const handleUpdate = async (fields: API.ChartUpdateRequest) => {
     if (!currentRow) {
       return;
     }
     const hide = message.loading('修改中');
     try {
-      await updateUserUsingPOST({
+      await updateChartUsingPOST({
         id: currentRow.id,
         ...fields,
       });
@@ -88,11 +68,11 @@ const UserInfo: React.FC = () => {
    *
    * @param record
    */
-  const handleRemove = async (record: API.UserVO) => {
+  const handleRemove = async (record: API.Chart) => {
     const hide = message.loading('正在删除');
     if (!record) return true;
     try {
-      await deleteUserUsingPOST({
+      await deleteChartUsingPOST({
         id: record.id,
       });
       hide();
@@ -112,7 +92,7 @@ const UserInfo: React.FC = () => {
    * */
     //  const intl = useIntl();
 
-  const columns: ProColumns<API.UserVO>[] = [
+  const columns: ProColumns<API.Chart>[] = [
       {
         title: 'ID',
         dataIndex: 'id',
@@ -120,82 +100,61 @@ const UserInfo: React.FC = () => {
         ellipsis: true,
       },
       {
-        title: '用户名',
-        dataIndex: 'userName',
+        title: '图表名',
+        dataIndex: 'name',
         valueType: 'text',
         hideInForm: true,
       },
       {
-        title: '用户账号',
-        dataIndex: 'userAccount',
+        title: '图表目标',
+        dataIndex: 'goal',
         valueType: 'text',
         hideInForm: true,
       },
       {
-        title: '用户头像',
-        dataIndex: 'userAvatar',
-        hideInForm: true,
-        render: (_: any, record: { userAvatar: string | undefined; }) => (
-          <div>
-            <Image src={record.userAvatar} width={50} height={50} />
-          </div>
-        ),
-      },
-      /*    {
-            title: '性别',
-            dataIndex: 'gender',
-            hideInForm: true,
-            valueEnum: {
-              0: {
-                text: '男',
-              },
-              1: {
-                text: '女',
-              },
-            },
-          },*/
-      {
-        title: '用户角色',
-        dataIndex: 'userRole',
+        title: '类型',
+        dataIndex: 'chartType',
         valueType: 'text',
-        valueEnum: {
-          admin: {
-            text: '管理员',
-            status: 'Processing',
+        hideInForm: true,
+      },
+      {
+        title: '图表状态',
+        dataIndex: 'status',
+        valueType: 'text',
+        valueEnum:{
+          succeed:{
+            text:"成功",
+            status:"success"
           },
-          user: {
-            text: '用户',
-            status: 'success',
+          failed:{
+            text:"失败",
+            status: "error"
           },
-          ban: {
-            text: '违规用户',
-            status: 'error',
-          },
+          loading:{
+            text:"正在生成",
+            status:'Processing'
+          }
+        }
+      },
+      {
+        title: '失败次数',
+        dataIndex: 'failedCount',
+        valueType: 'digit'
+      },
+      {
+        title: '生成结论',
+        dataIndex: 'genResult',
+        valueType: 'textarea',
+        render: (dom: ReactNode) => {
+          if (typeof dom === 'string') {
+            const text = dom;
+            if (text.length > 20) {
+              return text.substring(0, 20) + '...';
+            }
+            return text;
+          }
+          return dom;
         },
-      },
-      {
-        title: '剩余次数',
-        dataIndex: 'leftCount',
-        valueType: 'digit',
-        render: (_: any, record: { leftCount: any; id: number | undefined; }) => (
-          <InputNumber
-            min={0}
-            max={100}
-            value={record.leftCount}
-            onChange={(value) => {
-              const newData = data.map((item) => {
-                if (item.id === record.id) {
-                  return {
-                    ...item,
-                    leftCount: value,
-                  };
-                }
-                return item;
-              });
-              setData(newData);
-            }}
-          />
-        ),
       },
       {
         title: '创建时间',
@@ -209,26 +168,11 @@ const UserInfo: React.FC = () => {
         valueType: 'dateTime',
         hideInForm: true,
       },
-      /*   {
-                           title: '是否删除',
-                           dataIndex: 'isDeleted',
-                           hideInForm: true,
-                           valueEnum: {
-                             0: {
-                               text: '删除',
-                               status: 'Danger',
-                             },
-                             1: {
-                               text: '不删除',
-                               status: 'Default',
-                             },
-                           },
-                         },*/
       {
         title: '操作',
         dataIndex: 'option',
         valueType: 'option',
-        render: (_: any, record: React.SetStateAction<API.UserVO | undefined>) => [
+        render: (_: any, record: React.SetStateAction<API.Chart | undefined>) => [
           <a
             key="config"
             onClick={() => {
@@ -260,25 +204,14 @@ const UserInfo: React.FC = () => {
         search={{
           labelWidth: 120,
         }}
-        /*      toolBarRender={() => [
-                <Button
-                  type="primary"
-                  key="primary"
-                  onClick={() => {
-                    handleModalOpen(true);
-                  }}
-                >
-                  <PlusOutlined />{' '}
-                  <FormattedMessage id="pages.searchTable.new" defaultMessage="新建用户" />
-                </Button>,
-              ]}*/
         request={async (
           params,
           sort: Record<string, SortOrder>,
           filter: Record<string, (string | number)[] | null>,
         ) => {
-          const res: any = await listUserByPageUsingPOST({
+          const res: any = await listChartByPageUsingPOST({
             ...params,
+            sortOrder:'descend'
           });
 
           if (res?.data) {
@@ -341,7 +274,7 @@ const UserInfo: React.FC = () => {
           </Button>
         </FooterToolbar>
       )}
-      <UpdateModal
+      <UpdateChartModal
         columns={columns}
         onSubmit={async (value) => {
           const success = await handleUpdate(value);
@@ -371,28 +304,23 @@ const UserInfo: React.FC = () => {
         }}
         closable={false}
       >
-        {currentRow?.userName && (
+        {currentRow?.name && (
           <ProDescriptions<API.RuleListItem>
             column={2}
-            title={currentRow?.userName}
+            title={currentRow?.name}
             request={async () => ({
               data: currentRow || {},
             })}
             params={{
-              id: currentRow?.userName,
+              id: currentRow?.name,
             }}
             columns={columns as ProDescriptionsItemProps<API.RuleListItem>[]}
           />
         )}
       </Drawer>
-      <CreateModal
-        columns={columns}
-        onCancel={() => handleModalOpen(false)}
-        onSubmit={(values) => handleAdd(values)}
-        visible={createModalOpen}
-      />
+
     </PageContainer>
   );
 };
 
-export default UserInfo;
+export default ChartInfo;
